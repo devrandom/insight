@@ -17,6 +17,9 @@
       <span translate>mined</span> 
       <time>{{tx.time * 1000 | date:'medium'}}</time>
     </div>
+    <div>
+      Asset: {{tx.cdname}}
+    </div>
   </div>
 </div>
 <div class="row line-mid">
@@ -132,12 +135,16 @@
                 {{$root.currency.getConvertion(vout.value) || vout.value + ' BTC' }}
                 <span class="text-danger" data-ng-show="vout.isSpent" tooltip="Output is spent" tooltip-placement="left">(S)</span>
                 <span class="text-success" data-ng-show="!vout.isSpent"  tooltip="Output is unspent" tooltip-placement="left">(U)</span>
+                <br />
+                <span data-ng-show="vout.smartqty">{{vout.smartqty}} {{tx.cdname}}</span>
               </div>
-
               <div class="ellipsis">
                 <span data-ng-show="vout.notAddr">{{vout.addr}}</span>
                 <span class="text-muted" title="Current Bitcoin Address" data-ng-show="address == $root.currentAddr" data-ng-repeat="address in vout.addr.split(',')">{{vout.addr}}</span>
                 <a href="/address/{{address}}"  data-ng-show="!vout.notAddr && address != $root.currentAddr" data-ng-repeat="address in vout.addr.split(',')">{{address}}</a>
+              </div>
+              <div>
+                <span>{{vout.smartaddr}}</span>
               </div>
             </div>
           </div>

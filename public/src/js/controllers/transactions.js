@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('insight.transactions').controller('transactionsController',
-function($scope, $rootScope, $routeParams, $location, Global, Transaction, TransactionsByBlock, TransactionsByAddress) {
+function($q, $http, $scope, $rootScope, $routeParams, $location, Global, Transaction, TransactionsByBlock, TransactionsByAddress) {
   $scope.global = Global;
   $scope.loading = false;
   $scope.loadedBy = null;
@@ -52,6 +52,11 @@ function($scope, $rootScope, $routeParams, $location, Global, Transaction, Trans
         tmp[addr].addr = addr;
         tmp[addr].items = [];
       }
+      if ('smartaddr' in items[i]) {
+        tmp[addr].smartaddr = items[i].smartaddr;
+        tmp[addr].smartqty = items[i].smartqty;
+      }
+
       tmp[addr].isSpent = items[i].spentTxId;
 
       tmp[addr].doubleSpentTxID = tmp[addr].doubleSpentTxID   || items[i].doubleSpentTxID;
@@ -102,19 +107,49 @@ function($scope, $rootScope, $routeParams, $location, Global, Transaction, Trans
       address: $routeParams.addrStr,
       pageNum: pageNum
     }, function(data) {
-      _paginate(data);
+      var all = [];
+      data.txs.forEach(function(tx) {
+        all.push(_augmentTx(tx));
+      })
+      $q.all(all).then(function() { _paginate(data); });
     });
   };
 
+  var _cdmap = {
+    'fba87447fdcff5bc4ac0cff6336b5eb5a8defbfceb0f03f3f8b99c78143aa5f6': 'USD',
+    'df8a21d38c0642d0ec203fe76805b952eb4810e93ffba93e0dcef8cd013bb5ea': 'EUR',
+    '6bcb8afbf949990c1ee3ab175af8d2dac6ecf147f42c6014d726d308e8caa5c9': 'Gold',
+    'a4882cfa917048625e78d46846b0e50f6502e2c674eb125ad0d8b5cdf70efa11': 'Oil'};
+  var _augmentTx = function(tx, f) {
+    return $http.get('http://tracker0.smartcolors.org:8888/explore/transaction/' + tx.txid).then(function(aux){
+      for (defi = 0 ; defi < aux.data.colordefs.length ; defi++) {
+        def = aux.data.colordefs[defi];
+        tx.cdhash = def.cdhash;
+        tx.cdname = _cdmap[def.cdhash];
+
+        for (i = 0 ; i < tx.vin.length ; i++) {
+          if (i < def.srcaddrs.length && 'smartaddr' in def.srcaddrs[i])
+            tx.vin[i].smartaddr = def.srcaddrs[i].smartaddr;
+        }
+        for (i = 0 ; i < tx.vout.length ; i++) {
+          if (i < def.dstaddrs.length && 'smartaddr' in def.dstaddrs[i]) {
+            tx.vout[i].smartaddr = def.dstaddrs[i].smartaddr;
+            tx.vout[i].smartqty = def.dstaddrs[i].outpoints[0].qty;
+          }
+        }
+      }
+  })};
   var _findTx = function(txid) {
     Transaction.get({
       txId: txid
     }, function(tx) {
-      $rootScope.titleDetail = tx.txid.substring(0,7) + '...';
-      $rootScope.flashMessage = null;
-      $scope.tx = tx;
-      _processTX(tx);
-      $scope.txs.unshift(tx);
+      _augmentTx(tx).then(function() {
+        $rootScope.titleDetail = tx.txid.substring(0,7) + '...';
+        $rootScope.flashMessage = null;
+        $scope.tx = tx;
+        _processTX(tx);
+        $scope.txs.unshift(tx);
+      });
     }, function(e) {
       if (e.status === 400) {
         $rootScope.flashMessage = 'Invalid Transaction ID: ' + $routeParams.txId;
