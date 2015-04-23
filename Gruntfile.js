@@ -87,7 +87,7 @@ module.exports = function(grunt) {
     watch: {
       main: {
         files: ['public/src/js/**/*.js'],
-        tasks: ['concat:main', 'uglify:main'],
+        tasks: ['concat:main'/*, 'uglify:main'*/],
       },
       css: {
         files: ['public/src/css/**/*.css'],
@@ -123,7 +123,7 @@ module.exports = function(grunt) {
   grunt.registerTask('translate', ['nggettext_extract']);
 
   //Compile task (concat + minify)
-  grunt.registerTask('compile', ['nggettext_compile', 'concat', 'uglify', 'cssmin']);
+  grunt.registerTask('compile', ['nggettext_compile', 'concat', /*'uglify',*/ 'cssmin']);
 
 
 };
