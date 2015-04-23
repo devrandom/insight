@@ -121,7 +121,10 @@ function($q, $http, $scope, $rootScope, $routeParams, $location, Global, Transac
     '6bcb8afbf949990c1ee3ab175af8d2dac6ecf147f42c6014d726d308e8caa5c9': 'Gold',
     'a4882cfa917048625e78d46846b0e50f6502e2c674eb125ad0d8b5cdf70efa11': 'Oil'};
   var _augmentTx = function(tx, f) {
-    return $http.get('http://tracker0.smartcolors.org:8888/explore/transaction/' + tx.txid).then(function(aux){
+    var host = window.location.hostname;
+    if (host == '192.168.56.101') host = '127.0.0.1';
+    var deferral = $q.defer();
+    $http.get('http://' + host + ':8888/explore/transaction/' + tx.txid).then(function(aux){
       for (defi = 0 ; defi < aux.data.colordefs.length ; defi++) {
         def = aux.data.colordefs[defi];
         tx.cdhash = def.cdhash;
@@ -138,7 +141,12 @@ function($q, $http, $scope, $rootScope, $routeParams, $location, Global, Transac
           }
         }
       }
-  })};
+      deferral.resolve();
+    }, function(aux){
+      deferral.resolve();
+    });
+    return deferral.promise;
+  };
   var _findTx = function(txid) {
     Transaction.get({
       txId: txid
